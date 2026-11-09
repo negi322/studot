@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二次方程式ソルバー (分数表記対応)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 550px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 30px;
+            font-weight: bold;
+        }
+        input {
+            padding: 5px;
+            width: 100px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+        .formula {
+            font-family: serif;
+            font-size: 1.1em;
+            background: #fff;
+            padding: 8px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>解の公式による計算 (分数表示)</h2>
+    <p>係数 a, b, c を入力してください。</p>
+
+    <div class="input-group">
+        <label for="a">a:</label>
+        <input type="number" id="a" step="any">
+    </div>
+    <div class="input-group">
+        <label for="b">b:</label>
+        <input type="number" id="b" step="any">
+    </div>
+    <div class="input-group">
+        <label for="c">c:</label>
+        <input type="number" id="c" step="any">
+    </div>
+
+    <button onclick="solveWithFormula()">解の公式で計算</button>
+
+    <div id="result">係数を入力して「計算」を押してください。</div>
+
+    <script>
+        // 最大公約数を求める関数
+        function gcd(x, y) {
+            x = Math.abs(x);
+            y = Math.abs(y);
+            while (y) {
+                const t = y;
+                y = x % y;
+                x = t;
+            }
+            return x;
+        }
+
+        // 分数を文字列形式に整える関数
+        function formatFraction(num, den) {
+            if (den === 0) return "不能";
+            if (num === 0) return "0";
+            
+            // 符号の整理
+            if (den < 0) {
+                num = -num;
+                den = -den;
+            }
+
+            const g = gcd(num, den);
+            num /= g;
+            den /= g;
+
+            if (den === 1) return `${num}`;
+            return `${num}/${den}`;
+        }
+
+        function solveWithFormula() {
+            const a = parseFloat(document.getElementById('a').value);
+            const b = parseFloat(document.getElementById('b').value);
+            const c = parseFloat(document.getElementById('c').value);
+            const resultDiv = document.getElementById('result');
+
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                resultDiv.innerHTML = "すべての項目に数値を入力をしてください。";
+                return;
+            }
+
+            if (a === 0) {
+                resultDiv.innerHTML = "a = 0 のため解の公式（二次方程式）は適用できません。";
+                return;
+            }
+
+            // D = b^2 - 4ac
+            const D = b * b - 4 * a * c;
+            const twoA = 2 * a;
+            const minusB = -b;
+
+            let html = `<strong>【解の公式の適用】</strong><br>`;
+            html += `<div class="formula">x = [ -(${b}) ± √{(${b})² - 4 × (${a}) × (${c})} ] / (2 × ${a})</div>`;
+
+            if (D > 0) {
+                const sqrtD = Math.sqrt(D);
+                
+                if (Number.isInteger(sqrtD)) {
+                    // ルートが綺麗に外れる場合
+                    const num1 = minusB + sqrtD;
+                    const num2 = minusB - sqrtD;
+                    const frac1 = formatFraction(num1, twoA);
+                    const frac2 = formatFraction(num2, twoA);
+
+                    html += `<strong>【解】</strong><br>`;
+                    html += `分数表示: <strong>x = ${frac1}, ${frac2}</strong>`;
+                } else {
+                    // ルートが外れない場合 (分数約分処理)
+                    const g = gcd(gcd(minusB, 1), twoA);
+                    let displayMinusB = minusB;
+                    let displayTwoA = twoA;
+                    
+                    if (displayTwoA < 0) {
+                        displayMinusB = -displayMinusB;
+                        displayTwoA = -displayTwoA;
+                    }
+
+                    html += `<strong>【解】</strong><br>`;
+                    if (displayTwoA === 1) {
+                        html += `結果: <strong>x = ${displayMinusB} ± √${D}</strong>`;
+                    } else {
+                        html += `分数表示: <strong>x = (${displayMinusB} ± √${D}) / ${displayTwoA}</strong>`;
+                    }
+                }
+            } else if (D === 0) {
+                const frac = formatFraction(minusB, twoA);
+                html += `<strong>【解（重解）】</strong><br>`;
+                html += `分数表示: <strong>x = ${frac}</strong>`;
+            } else {
+                const absD = Math.abs(D);
+                const sqrtAbsD = Math.sqrt(absD);
+
+                if (Number.isInteger(sqrtAbsD)) {
+                    // 虚数部が整数に外れる場合
+                    const realFrac = formatFraction(minusB, twoA);
+                    const imagFrac = formatFraction(sqrtAbsD, twoA);
+                    html += `<strong>【解（虚数解）】</strong><br>`;
+                    html += `分数表示: <strong>x = (${minusB} ± ${sqrtAbsD}i) / ${twoA}</strong>`;
+                } else {
+                    // 虚数部がルートのまま残る場合
+                    let displayMinusB = minusB;
+                    let displayTwoA = twoA;
+                    if (displayTwoA < 0) {
+                        displayMinusB = -displayMinusB;
+                        displayTwoA = -displayTwoA;
+                    }
+
+                    html += `<strong>【解（虚数解）】</strong><br>`;
+                    if (displayTwoA === 1) {
+                        html += `結果: <strong>x = ${displayMinusB} ± √${absD}i</strong>`;
+                    } else {
+                        html += `分数表示: <strong>x = (${displayMinusB} ± √${absD}i) / ${displayTwoA}</strong>`;
+                    }
+                }
+            }
+
+            resultDiv.innerHTML = html;
+        }
+    </script>
+
+</body>
+</html>
